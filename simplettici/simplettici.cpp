@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <stdlib.h>
+
 
 struct harmonic_osc
 {
@@ -67,7 +70,7 @@ struct quartic_osc
 template<class PROBLEM>
 void advance_1storder(double & q_new, double & p_new, const double q, const double p, const double dt, const double t, PROBLEM & problem)
 {
-	//TODO implementare l'integratore al primo ordine corretto (c'e' un errore)
+	//DONE implementare l'integratore al primo ordine corretto (c'e' un errore)
 	p_new = p + dt*problem.minus_gradV(q,t);
 	q_new = q + dt*p_new;
 }
@@ -75,17 +78,21 @@ void advance_1storder(double & q_new, double & p_new, const double q, const doub
 template<class PROBLEM>
 void advance_2ndorder(double & q_new, double & p_new, const double q, const double p, const double dt, const double t, PROBLEM & problem)
 {
-	//TODO implementare l'integratore al secondo ordine 
-	q_new = 0;
-	p_new = 0;
+	//DONE implementare l'integratore al secondo ordine 
+	q_new = q + dt*p + 0.5*dt*dt*problem.minus_gradV(q,t);
+	p_new = p + 0.5*dt*( problem.minus_gradV(q,t) + problem.minus_gradV(q_new,t) );
 }
 
 template<class PROBLEM>
 void advance_4thorder(double & q_new, double & p_new, const double q, const double p, const double dt, const double t, PROBLEM & problem)
 {
-	//TODO implementare l'integratore al quarto ordine 
-	q_new = 0;
-	p_new = 0;
+	//DONE implementare l'integratore al quarto ordine 
+	double alpha = 1/(2 - cbrt(2));
+	double beta  = cbrt(2)/(2 - cbrt(2));
+	double q_new2, p_new2;
+	advance_2ndorder(q_new,  p_new,  q,      p,      alpha*dt, t, problem);
+	advance_2ndorder(q_new2, p_new2, q_new,  p_new,  -beta*dt, t, problem);
+	advance_2ndorder(q_new,  p_new,  q_new2, p_new2, alpha*dt, t, problem);
 }
 
 int main(void)
@@ -126,7 +133,79 @@ int main(void)
 		}
 		Error /= steps;
 		
-		std::cout << n << " " << Error << "\n"; //stampa l'errore per numero di passi n
+		std::cout << "1 order: "<< n << "\t " << Error << "\n"; //stampa l'errore per numero di passi n
+	}
+	
+	for(int n_=1; n_<N_tries; n_++)
+	{
+		int n = 2*n_-1; //prova con vari passi di integrazione
+		int steps = 1024*n;
+		double dt = 0.1/n;
+		double t  = 0;
+		
+		std::vector<double> q(steps);
+		std::vector<double> p(steps);
+		std::vector<double> E(steps);
+		
+		q[0] = problem.ci_q();
+		p[0] = problem.ci_p();
+		
+		double Error;
+		
+		for(int i=0; i<steps-1; i++)
+		{
+			advance_2ndorder(q[i+1], p[i+1], q[i], p[i], dt, t, problem); // per quello al secondo ordine!
+			
+			Error += pow(problem.analytic_q(t)-q[i],2.0);
+			Error += pow(problem.analytic_p(t)-p[i],2.0);
+			
+			t += dt;
+			
+			E[i+1] = 0.5*p[i+1]*p[i+1] + problem.V(q[i+1],t);
+			//TODO calcolare escursione energia per i vari integratori
+			
+
+
+		}
+		Error /= steps;
+		
+		std::cout << "2 order: " << n << "\t " << Error << "\n"; //stampa l'errore per numero di passi n
+	}
+	
+	for(int n_=1; n_<N_tries; n_++)
+	{
+		int n = 2*n_-1; //prova con vari passi di integrazione
+		int steps = 1024*n;
+		double dt = 0.1/n;
+		double t  = 0;
+		
+		std::vector<double> q(steps);
+		std::vector<double> p(steps);
+		std::vector<double> E(steps);
+		
+		q[0] = problem.ci_q();
+		p[0] = problem.ci_p();
+		
+		double Error;
+		
+		for(int i=0; i<steps-1; i++)
+		{
+			advance_4thorder(q[i+1], p[i+1], q[i], p[i], dt, t, problem); // per quello al secondo ordine!
+			
+			Error += pow(problem.analytic_q(t)-q[i],2.0);
+			Error += pow(problem.analytic_p(t)-p[i],2.0);
+			
+			t += dt;
+			
+			E[i+1] = 0.5*p[i+1]*p[i+1] + problem.V(q[i+1],t);
+			//TODO calcolare escursione energia per i vari integratori
+			
+
+
+		}
+		Error /= steps;
+		
+		std::cout << "4 order: " << n << "\t " << Error << "\n"; //stampa l'errore per numero di passi n
 	}
 	
 	return 0;

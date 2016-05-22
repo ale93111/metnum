@@ -29,8 +29,8 @@ std::vector<double> euler(double dt, int nsteps)
 	
 	for(int n=0; n<nsteps; n++)
 	{
-		X0[n+1] =X0[n] + df0_dt(X0[n],X1[n])*dt; // FATTO: completare utilizzando il metodo di eulero, usando la derivata df0_dt(X[n])
-		X1[n+1] =X1[n] + df1_dt(X0[n],X1[n])*dt; // FATTO: completare utilizzando il metodo di eulero, usando la derivata df1_dt(X[n])
+		X0[n+1] =X0[n] + df0_dt(X0[n],X1[n])*dt; // DA FARE: completare utilizzando il metodo di eulero, usando la derivata df0_dt(X[n])
+		X1[n+1] =X1[n] + df1_dt(X0[n],X1[n])*dt; // DA FARE: completare utilizzando il metodo di eulero, usando la derivata df1_dt(X[n])
 	
 		norm[n+1] = sqrt(X0[n+1]*X0[n+1]+X1[n+1]*X1[n+1]); //distanza da (0,0)
 	}
@@ -48,12 +48,18 @@ std::vector<double> leapfrog(double dt, int nsteps)
 	X0[0] = 1; //condizione iniziale
 	X1[0] = 0;
 	
+	X1[0] = X1[0] + df1_dt(X0[0],X1[0])*dt/2.0; //v t+1/2
+	
 	for(int n=0; n<nsteps; n++)
 	{
-		X0[n+1] =X0[n] + df0_dt(X0[n],X1[n])*dt + 0.5*df1_dt(X0[n],X1[n])*dt*dt;
-		X1[n+1] =X1[n] + 0.5*(df1_dt(X0[n],X1[n]) + df1_dt(X0[n+1],X1[n+1]) )*dt; 
-	
-		norm[n+1] = sqrt(X0[n+1]*X0[n+1]+X1[n+1]*X1[n+1]); //distanza da (0,0)
+		//X0[n+1] =X0[n] + df0_dt(X0[n],X1[n])*dt + 0.5*df1_dt(X0[n],X1[n])*dt*dt; //simplettico 2 ordine equivalente
+		//X1[n+1] =X1[n] + 0.5*(df1_dt(X0[n],X1[n]) + df1_dt(X0[n+1],X1[n+1]) )*dt; 
+		X0[n+1] = X0[n] + df0_dt(X0[n],X1[n])*dt; //al tempo t
+		X1[n+1] = X1[n] + df1_dt(X0[n+1],X1[n+1])*dt; //al tempo t+1/2
+		
+		//valutare norm per passi coincidenti propagando di +1/2 x o v
+		//norm[n+1] = sqrt((X0[n+1] + df0_dt(X0[n],X1[n])*dt/2.0)*(X0[n+1] + df0_dt(X0[n],X1[n])*dt/2.0)+X1[n+1]*X1[n+1]); //distanza da (0,0)
+		norm[n+1] = sqrt(X0[n+1]*X0[n+1] + (X1[n] + df1_dt(X0[n+1],X1[n+1])*dt/2.0)*(X1[n] + df1_dt(X0[n+1],X1[n+1])*dt/2.0)); //distanza da (0,0)
 	}
 	
 	return norm;
